@@ -3,8 +3,8 @@ from snow_mesh import simple_mesh
 import matplotlib.pylab as plt
 
 
-def simple_setup():
-    V = FunctionSpace(simple_mesh, "Lagrange", 1)
+def simple_setup(mesh, dt_val, V=None):
+    V = V or FunctionSpace(mesh, "Lagrange", 1)
     u = TrialFunction(V)
     v = TestFunction(V)
     T_prev = Function(V)
@@ -14,7 +14,7 @@ def simple_setup():
     Q_pc = Constant(1.0)
     Q_sw = Constant(1.0)
     Q_mm = Constant(1.0)
-    dt = Constant(1.0)
+    dt = Constant(dt_val)
     return V, u, v, T_prev, P_s, c_s, k_e, Q_pc, Q_sw, Q_mm, dt
 
 
@@ -34,7 +34,7 @@ def ground_boundary(x, on_boundary):
 
 
 def make_bcs(V, surface_val, ground_val):
-    bc1 = DirichletBC(V, Constant(-ground_val), ground_boundary)
+    bc1 = DirichletBC(V, Constant(ground_val), ground_boundary)
     bc2 = DirichletBC(V, Constant(surface_val), surface_boundary)
     return [bc1, bc2]
 
@@ -47,7 +47,7 @@ def step(t, dt, T_prev, T, a, L, bc):
 
 
 def main():
-    V, u, v, T_prev, P_s, c_s, k_e, Q_pc, Q_sw, Q_mm, dt = simple_setup()
+    V, u, v, T_prev, P_s, c_s, k_e, Q_pc, Q_sw, Q_mm, dt = simple_setup(simple_mesh)
     a, L = construct_variation_problem(u, v, T_prev, P_s, c_s, k_e, Q_pc, Q_sw, Q_mm, dt)
     T = Function(V)
     num_steps = 10

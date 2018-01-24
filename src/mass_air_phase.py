@@ -4,8 +4,8 @@ from snow_mesh import simple_mesh
 import matplotlib.pylab as plt
 
 
-def simple_setup():
-    V = FunctionSpace(simple_mesh, "Lagrange", 1)
+def simple_setup(mesh, dt_val, V=None):
+    V = V or FunctionSpace(mesh, "Lagrange", 1)
     u = TrialFunction(V)
     v = TestFunction(V)
     P_prev = Function(V)
@@ -18,7 +18,7 @@ def simple_setup():
     M_mm = Constant(1.0)
     q_h = Constant(1.0)
     T_s = project(Constant(-5.0), V)
-    dt = Constant(1.0)
+    dt = Constant(dt_val)
     return V, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s
 
 
@@ -31,8 +31,8 @@ def make_ds(mesh):
     ds = Measure("ds", subdomain_data = boundaries)
     return ds
 
-def construct_variation_problem(u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s):
-    ds = make_ds(simple_mesh)
+def construct_variation_problem(mesh, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s):
+    ds = make_ds(mesh)
     u_t = (u - P_prev)/dt
     term = alpha_th*u*P_d*(my_v + my_d)**2/((P_prev + P_d)*my_v*my_d)/T_s*grad(T_s)
     F = theta_a*u_t*v*dx + theta_a*D_e*dot(grad(u) - term, grad(v))*dx - M_mm*v*dx + q_h*v*ds(1)
@@ -51,8 +51,8 @@ def step(t, dt, P_prev, P, a, L):
 
 
 def main():
-    V, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s = simple_setup()
-    a, L = construct_variation_problem(u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s)
+    V, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s = simple_setup(simple_mesh)
+    a, L = construct_variation_problem(simple_mesh, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s)
     P = Function(V)
     num_steps = 10
     t = 0
