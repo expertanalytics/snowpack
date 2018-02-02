@@ -6,8 +6,8 @@ from fenics import Function
 from fenics import Constant
 from fenics import DirichletBC
 from fenics import Mesh
+from fenics import UnitIntervalMesh
 from fenics import dot, grad, dx, rhs, lhs, near, solve
-from .snow_mesh import simple_mesh
 import matplotlib.pylab as plt
 
 
@@ -59,15 +59,16 @@ class BulkTemperature:
         return [bc1, bc2]
 
 
-def step(t, dt, T_prev, T, a, L, bc):
-        t += dt
-        solve(a == L, T, bc)
-        T_prev.assign(T)
-        return t, T_prev, T
+def step(*, time: float, dt: float, t_prev: Function, t: Function, a, l, bc) -> Tuple[float, Function, Function]:
+        time += dt
+        solve(a == l, t, bc)
+        t_prev.assign(t)
+        return time, t_prev, t
 
 
-def main():
-    p = BulkTemperatureParameters(V=None, mesh=simple_mesh, dt=0.01)
+def test_solve() -> None:
+    mesh = UnitIntervalMesh(10)
+    p = BulkTemperatureParameters(V=None, mesh=mesh, dt=0.01)
     bulk_temp = BulkTemperature(params=p)
     V = p.V
     dt = p.dt
@@ -80,11 +81,8 @@ def main():
     sols = []
     for n in range(num_steps):
         bc = bulk_temp.make_bcs(V, 0, -10)
-        t, T_prev, T = step(t, dt, T_prev, T, a, L, bc)
+        t, T_prev, T = step(time=t, dt=dt, t_prev=T_prev, t=T, a=a, l=L, bc=bc)
         sols.append(T.vector().array())
     for s in sols:
         plt.plot(s)
-
     plt.show()
-if __name__ == "__main__":
-    main()

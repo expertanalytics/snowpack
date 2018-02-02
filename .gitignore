@@ -1,5 +1,6 @@
 *.pyc
 .idea
 .*swp
+.cache
 venv
 venv1
