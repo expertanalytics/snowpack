@@ -1,5 +1,5 @@
 import matplotlib.pylab as plt
-from fenics import Function, UnitIntervalMesh
+from fenics import Function, UnitIntervalMesh, FunctionSpace, plot
 from snowbird import mass_air_phase
 from snowbird import bulk_temperature
 
@@ -14,7 +14,7 @@ def solve():
 
     bt_params = bulk_temperature.BulkTemperatureParameters(V=V, mesh=mesh, dt=dt)
     bt = bulk_temperature.BulkTemperature(V=V, mesh=mesh, dt=dt, params=bt_params)
-    bt.initialize(time=t)
+    bt.initialize(time=t, mesh=mesh)
 
     map_params = mass_air_phase.MassAirPhaseParameters(V=V, mesh=mesh, dt=dt)
     map_params.T_s = bt.t
@@ -22,20 +22,18 @@ def solve():
     a_P, L_P = ma_ph.construct_variation_problem()
     P = Function(V)
 
-    T_sols = [bt.t_prev.vector().get_local()]
-    P_sols = []
+    plt.subplot(2, 1, 1)
+    plot(bt.t)
     for n in range(num_steps):
 
         bt.step(time=t, dt=dt)
         _, map_params.P_prev, P = mass_air_phase.step(time=t, dt=dt, p_prev=map_params.P_prev, p=P, a=a_P, l=L_P)
         t += dt
-        T_sols.append(bt.t.vector().get_local())
-        P_sols.append(P.vector().get_local())
-    for T_s in T_sols:
-        plt.plot(T_s)
-    plt.figure()
-    for P_s in P_sols:
-        plt.plot(P_s)
+
+        plt.subplot(2, 1, 1)
+        plot(bt.t)
+        plt.subplot(2, 1, 2)
+        plot(P)
 
     plt.show()
 

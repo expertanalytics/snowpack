@@ -7,6 +7,7 @@ from fenics import Constant
 from fenics import DirichletBC
 from fenics import Mesh
 from fenics import UnitIntervalMesh
+from fenics import vertex_to_dof_map
 from fenics import dot, grad, dx, rhs, lhs, near, solve
 from ufl.form import Form
 import matplotlib.pylab as plt
@@ -43,17 +44,26 @@ class BulkTemperature:
         p = self.params
         u_t = (self.T - self.t_prev) / self.dt
         f = p.Q_pc + p.Q_sw + p.Q_mm
-        F = p.P_s * p.c_s * u_t * self.v * dx + p.k_e * dot(grad(self.T), grad(self.v)) * dx - f * self.v * dx
+        F = p.P_s*p.c_s*u_t*self.v*dx + p.k_e*dot(grad(self.T), grad(self.v))*dx - f*self.v*dx
         return lhs(F), rhs(F)
 
-    def initialize(self, *, time: float):
-        self.initialize_random(time=time)
+    def initialize(self, *, time: float, mesh: Mesh):
+        self.initialize_random(time=time, mesh=mesh)
 
-    def initialize_random(self, *, time: float) -> None:
+    def initialize_random(self, *, time: float, mesh: Mesh) -> None:
         values = np.random.uniform(0, -10, self.t_prev.vector().size())
+        v2d = vertex_to_dof_map(self.V)
+        values[v2d[0]] = self.ground_value(time=time)
+        values[v2d[-1]] = self.surface_value(time=time)
+        self.t_prev.vector().set_local(values)
+        self.t.assign(self.t_prev)
+
+    def initialize_linear(self, *, time: float, mesh: Mesh) -> None:
+        values = np.zeros(self.t_prev.vector().size())
         values[0] = self.ground_value(time=time)
         values[-1] = self.surface_value(time=time)
-        self.t_prev.vector().set_local(values)
+        self.t.vector().set_local(values)
+        self.t_prev.assign(self.t)
 
     @staticmethod
     def surface_boundary(x, on_boundary: bool) -> bool:
