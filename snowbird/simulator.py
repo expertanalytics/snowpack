@@ -10,7 +10,7 @@ def solve():
     dt = 0.01
 
     mesh = UnitIntervalMesh(10)
-
+    V = FunctionSpace(mesh, "Lagrange", 1)
 
     bt_params = bulk_temperature.BulkTemperatureParameters(V=V, mesh=mesh, dt=dt)
     bt = bulk_temperature.BulkTemperature(V=V, mesh=mesh, dt=dt, params=bt_params)
