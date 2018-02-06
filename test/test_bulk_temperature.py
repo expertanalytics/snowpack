@@ -3,26 +3,20 @@ from snowbird import bulk_temperature
 import fenics
 
 
-def test_create_bulk_temperature_parameters(mesh):
-    params = bulk_temperature.BulkTemperatureParameters(V=None, mesh=mesh, dt=0.01)
-    assert isinstance(params.V, fenics.FunctionSpace)
-
-
-def test_create_bulk_temperature(params):
-    bt = bulk_temperature.BulkTemperature(params=params)
+def test_create_bulk_temperature(params, simple_mesh, simple_V):
+    dt = 0.01
+    bt = bulk_temperature.BulkTemperature(V=simple_V, mesh=simple_mesh, dt=dt, params=params)
     assert isinstance(bt, bulk_temperature.BulkTemperature)
 
 
-def test_simulate_bulk_temperature(params):
-    bt = bulk_temperature.BulkTemperature(params=params)
-    V = params.V
-    dt = params.dt
-    T_prev = params.T_prev
-    a, L = bt.construct_variation_problem()
-
-    T = fenics.Function(V)
-    num_steps = 10
+def test_simulate_bulk_temperature(params, simple_mesh, simple_V):
     t = 0
+    dt = 0.01
+    num_steps = 10
+
+    bt = bulk_temperature.BulkTemperature(V=simple_V, mesh=simple_mesh, dt=dt, params=params)
+    bt.initialize()
+
     for n in range(num_steps):
-        bc = bt.make_bcs(V, 0, -10)
-        t, T_prev, T = bulk_temperature.step(time=t, dt=dt, t_prev=T_prev, t=T, a=a, l=L, bc=bc)
+        bt.step(time=t, dt=dt)
+

@@ -10,77 +10,76 @@ from fenics import UnitIntervalMesh
 from fenics import dot, grad, dx, rhs, lhs, near, solve
 from ufl.form import Form
 import matplotlib.pylab as plt
+import numpy as np
 
 
 class BulkTemperatureParameters:
 
-    def __init__(self, *, V: Optional[FunctionSpace], mesh: Mesh, dt: float) -> None:
-        V = V or FunctionSpace(mesh, "Lagrange", 1)
-        self.V = V
-        self.T = TrialFunction(V)
-        self.v = TestFunction(V)
-        self.T_prev = Function(V)
+    def __init__(self, V: FunctionSpace, mesh: Mesh, dt: float) -> None:
+
         self.P_s = Constant(1.0)
         self.c_s = Constant(1.0)
         self.k_e = Constant(1.0)
         self.Q_pc = Constant(1.0)
         self.Q_sw = Constant(1.0)
         self.Q_mm = Constant(1.0)
-        self.dt = Constant(dt)
 
 
 class BulkTemperature:
 
-    def __init__(self, *, params: BulkTemperatureParameters) -> None:
+    def __init__(self, *, V: FunctionSpace, mesh: Mesh, dt: float, params: BulkTemperatureParameters) -> None:
         self.params = params
+
+        self.V = V
+        self.t = Function(V)
+        self.T = TrialFunction(V)
+        self.v = TestFunction(V)
+        self.t_prev = Function(V)
+        self.dt = Constant(dt)
+
+        self.a, self.l = self.construct_variation_problem()
 
     def construct_variation_problem(self) -> Tuple[Form, Form]:
         p = self.params
-        u_t = (p.T - p.T_prev)/p.dt
+        u_t = (self.T - self.t_prev) / self.dt
         f = p.Q_pc + p.Q_sw + p.Q_mm
-        F = p.P_s*p.c_s*u_t*p.v*dx + p.k_e*dot(grad(p.T), grad(p.v))*dx - f*p.v*dx
+        F = p.P_s * p.c_s * u_t * self.v * dx + p.k_e * dot(grad(self.T), grad(self.v)) * dx - f * self.v * dx
         return lhs(F), rhs(F)
+
+    def initialize(self, *, time: float):
+        self.initialize_random(time=time)
+
+    def initialize_random(self, *, time: float) -> None:
+        values = np.random.uniform(0, -10, self.t_prev.vector().size())
+        values[0] = self.ground_value(time=time)
+        values[-1] = self.surface_value(time=time)
+        self.t_prev.vector().set_local(values)
 
     @staticmethod
     def surface_boundary(x, on_boundary: bool) -> bool:
-            return on_boundary and x[0] > 0
+        return on_boundary and x[0] > 0
 
     @staticmethod
     def ground_boundary(x, on_boundary: bool) -> bool:
-            return on_boundary and near(x[0], 0.0)
+        return on_boundary and near(x[0], 0.0)
 
-    @classmethod
-    def make_bcs(cls, V, surface_val, ground_val) -> List[DirichletBC]:
-        bc1 = DirichletBC(V, Constant(ground_val), cls.ground_boundary)
-        bc2 = DirichletBC(V, Constant(surface_val), cls.surface_boundary)
-        return [bc1, bc2]
+    def surface_value(self, *, time) -> float:
+        return -10
 
+    def ground_value(self, *, time) -> float:
+        return 0
 
-def step(*, time: float, dt: float, t_prev: Function, t: Function,
-         a: Form, l: Form, bc) -> Tuple[float, Function, Function]:
+    def make_bcs(self, *, time) -> Tuple[DirichletBC, DirichletBC]:
+        bc1 = DirichletBC(self.V, Constant(self.ground_value(time=time)), self.ground_boundary)
+        bc2 = DirichletBC(self.V, Constant(self.surface_value(time=time)), self.surface_boundary)
+        return bc1, bc2
+
+    def step(self, *, time: float, dt: float):
+
         time += dt
-        solve(a == l, t, bc)
-        t_prev.assign(t)
-        return time, t_prev, t
+        bc = self.make_bcs(time=time)
+        solve(self.a == self.l, self.t, bc)
+        self.t_prev.assign(self.t)
 
 
-def test_solve() -> None:
-    mesh = UnitIntervalMesh(10)
-    p = BulkTemperatureParameters(V=None, mesh=mesh, dt=0.01)
-    bulk_temp = BulkTemperature(params=p)
-    V = p.V
-    dt = p.dt
-    T_prev = p.T_prev
-    a, L = bulk_temp.construct_variation_problem()
 
-    T = Function(V)
-    num_steps = 10
-    t = 0
-    sols = []
-    for n in range(num_steps):
-        bc = bulk_temp.make_bcs(V, 0, -10)
-        t, T_prev, T = step(time=t, dt=dt, t_prev=T_prev, t=T, a=a, l=L, bc=bc)
-        sols.append(T.vector().array())
-    for s in sols:
-        plt.plot(s)
-    plt.show()
