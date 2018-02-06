@@ -1,31 +1,32 @@
 import numpy as np
 import matplotlib.pylab as plt
-from fenics import FunctionSpace, Function
-from snow_mesh import simple_mesh
-import mass_air_phase 
-import bulk_temperature
+from fenics import FunctionSpace, Function, UnitIntervalMesh
+from snowbird import mass_air_phase
+from snowbird import bulk_temperature
 
 
 def solve():
-    mesh = simple_mesh
+    mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "Lagrange", 1)
-    dt_val = 0.01
-    _, u, v, T_prev, P_s, c_s, k_e, Q_pc, Q_sw, Q_mm, dt = bulk_temperature.simple_setup(mesh, dt_val, V)
-    a_T, L_T = bulk_temperature.construct_variation_problem(u, v, T_prev, P_s, c_s, k_e, Q_pc, Q_sw, Q_mm, dt)
+    dt = 0.01
+    bt_params = bulk_temperature.BulkTemperatureParameters(V=V, mesh=mesh, dt=dt)
+    bt = bulk_temperature.BulkTemperature(params=bt_params)
+    a_T, L_T = bt.construct_variation_problem()
     T = Function(V)
-    T_prev.vector().set_local(np.random.uniform(0, -10, T_prev.vector().size()))
-    _, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s = mass_air_phase.simple_setup(mesh, dt_val, V)
-    a_P, L_P = mass_air_phase.construct_variation_problem(mesh, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T)
+    bt_params.T_prev.vector().set_local(np.random.uniform(0, -10, bt_params.T_prev.vector().size()))
+    map_params = mass_air_phase.MassAirPhaseParameters(V=V, mesh=mesh, dt=dt)
+    map_params.T_s = T
+    ma_ph = mass_air_phase.MassAirPhase(params=map_params)
+    a_P, L_P = ma_ph.construct_variation_problem()
     P = Function(V)
     num_steps = 10
     t = 0
-    T_sols = [T_prev.vector().array()]
+    T_sols = [bt_params.T_prev.vector().array()]
     P_sols = []
-    #T.vector().array()
     for n in range(num_steps):
-        bc = bulk_temperature.make_bcs(V, 0, -10)
-        _, T_prev, T = bulk_temperature.step(t, dt, T_prev, T, a_T, L_T, bc)
-        _, P_prev, P = mass_air_phase.step(t, dt, P_prev, P, a_P, L_P)
+        bc = bt.make_bcs(V, 0, -10)
+        _, bt_params.T_prev, T = bulk_temperature.step(time=t, dt=dt, t_prev=bt_params.T_prev, t=T, a=a_T, l=L_T, bc=bc)
+        _, map_params.P_prev, P = mass_air_phase.step(time=t, dt=dt, p_prev=map_params.P_prev, p=P, a=a_P, l=L_P)
         t += dt
         T_sols.append(T.vector().array())
         P_sols.append(P.vector().array())
