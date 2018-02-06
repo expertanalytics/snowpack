@@ -77,7 +77,7 @@ class BulkTemperature:
     def step(self, *, time: float, dt: float):
 
         time += dt
-        bc = self.make_bcs(time=time)
+        bc = list(self.make_bcs(time=time))
         solve(self.a == self.l, self.t, bc)
         self.t_prev.assign(self.t)
 
