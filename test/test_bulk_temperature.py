@@ -1,6 +1,5 @@
 from test.fixtures import simple_mesh as mesh, simple_bulk_temp_parameters as params
 from snowbird import bulk_temperature
-import fenics
 
 
 def test_create_bulk_temperature(params, simple_mesh, simple_V):

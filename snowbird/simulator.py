@@ -1,6 +1,5 @@
-import numpy as np
 import matplotlib.pylab as plt
-from fenics import FunctionSpace, Function, UnitIntervalMesh
+from fenics import Function, UnitIntervalMesh
 from snowbird import mass_air_phase
 from snowbird import bulk_temperature
 

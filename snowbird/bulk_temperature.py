@@ -57,7 +57,7 @@ class BulkTemperature:
 
     @staticmethod
     def surface_boundary(x, on_boundary: bool) -> bool:
-        return on_boundary and x[0] > 0
+        return on_boundary and near(x[0], 1.0)
 
     @staticmethod
     def ground_boundary(x, on_boundary: bool) -> bool:
