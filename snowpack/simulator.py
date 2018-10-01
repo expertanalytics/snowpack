@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pylab as plt
-from fenics import FunctionSpace, Function
-from snow_mesh import simple_mesh
-import mass_air_phase 
-import bulk_temperature
+from dolfin import FunctionSpace, Function
+from .snow_mesh import simple_mesh
+from . import mass_air_phase
+from . import bulk_temperature
 
 
 def solve():

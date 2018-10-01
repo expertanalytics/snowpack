@@ -1,6 +1,20 @@
-from __future__ import print_function
-from fenics import *
-from snow_mesh import simple_mesh
+#from dolfin import FunctionSpace
+#from dolfin import TrialFunction
+#from dolfin import TestFunction
+#from dolfin import Function
+#from dolfin import Constant
+#from dolfin import project
+#from dolfin import AutoSubDomain
+#from dolfin import Measure
+#from dolfin import SubDomain
+#from dolfin import MeshFunction
+#from dolfin import lhs
+#from dolfin import rhs
+#from dolfin import solve
+#from dolfin import near
+##from ufl import dx, dot, grad
+from firedrake import *
+from snowpack.snow_mesh import simple_mesh
 import matplotlib.pylab as plt
 
 
@@ -22,13 +36,15 @@ def simple_setup(mesh, dt_val, V=None):
     return V, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s
 
 
+
+
 def make_ds(mesh):
-    Surface = AutoSubDomain(lambda x: "on_boundary" and near(x[0], 1))
-    Allboundaries = DomainBoundary()
-    boundaries = FacetFunction("size_t", mesh)
+    #surface = MyFuckingSubDomain()
+    #Allboundaries = DomainBoundary()
+    boundaries = MeshFunction(mesh=mesh, dim=mesh.geometry().dim() - 1, value_type="size_t")
     boundaries.set_all(0)
-    Surface.mark(boundaries, 1)
-    ds = Measure("ds", subdomain_data = boundaries)
+    surface.mark(boundaries, 1)
+    ds = Measure("ds", subdomain_data=boundaries)
     return ds
 
 def construct_variation_problem(mesh, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s):
@@ -51,13 +67,14 @@ def step(t, dt, P_prev, P, a, L):
 
 
 def main():
-    V, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s = simple_setup(simple_mesh)
+    V, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s = simple_setup(simple_mesh, 0.01)
     a, L = construct_variation_problem(simple_mesh, u, v, dt, P_prev, theta_a, D_e, P_d, my_v, my_d, alpha_th, M_mm, q_h, T_s)
     P = Function(V)
     num_steps = 10
     t = 0
     sols = []
-    for n in range(num_steps):
+    for i in range(num_steps):
+        print(i)
         t, P_prev, P = step(t, dt, P_prev, P, a, L)
         sols.append(P.vector().array())
     for s in sols:

@@ -1,12 +1,18 @@
 from typing import Optional, Tuple, Any, List
-from fenics import FunctionSpace
-from fenics import TrialFunction
-from fenics import TestFunction
-from fenics import Function
-from fenics import Constant
-from fenics import DirichletBC
-from fenics import Mesh
-from fenics import dot, grad, dx, rhs, lhs, near, solve
+from dolfin import FunctionSpace
+from dolfin import TrialFunction
+from dolfin import TestFunction
+from dolfin import Function
+from dolfin import Constant
+from dolfin import DirichletBC
+from dolfin import near
+from dolfin import solve
+from dolfin import dot
+from dolfin import grad
+from dolfin import rhs
+from dolfin import lhs
+from dolfin import dx
+from dolfin import Mesh
 from .snow_mesh import simple_mesh
 import matplotlib.pylab as plt
 
@@ -86,5 +92,7 @@ def main():
         plt.plot(s)
 
     plt.show()
+
+
 if __name__ == "__main__":
     main()
